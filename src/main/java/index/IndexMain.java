@@ -5,8 +5,8 @@ import java.nio.file.Paths;
 public class IndexMain {
     public static void main(String[] args) {
 
-        Index index = new Index(Paths.get("./"));
-        index.addDirectory(Paths.get("/home/artur/Dokumenty/lucyna"));
+        Index index = new Index(Paths.get("home/artur/index.index"));
+        index.addDirectory(Paths.get("/home/artur/Dokumenty/lucyna/target/name1.jar"));
 
         if(args.length == 0) {
             System.out.println("skanuję foldery...");
