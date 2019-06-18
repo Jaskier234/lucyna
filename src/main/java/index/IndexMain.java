@@ -5,8 +5,7 @@ import java.nio.file.Paths;
 public class IndexMain {
     public static void main(String[] args) {
 
-        Index index = new Index(Paths.get("home/artur/index.index"));
-        index.addDirectory(Paths.get("/home/artur/Dokumenty/lucyna/target/name1.jar"));
+        Writer index = new Writer(Paths.get(System.getProperty("user.home") + ".index"));
 
         if(args.length == 0) {
             System.out.println("skanuję foldery...");
@@ -20,9 +19,16 @@ public class IndexMain {
             switch(args[0]) {
                 case "--purge":
                     // usuwa wszystkie dokumenty z indeksu
+                    index.deleteAll();
                     break;
                 case "--add":
                     // dodaje ścieżkę do katalogu
+                    if(args.length != 2) {
+                        index.addDirectory(Paths.get(args[1]));
+                    }
+                    else {
+                        System.out.println("Niepoprawne polecenie");
+                    }
                     break;
                 case "--rm":
                     // usuwa katalog z indeksu

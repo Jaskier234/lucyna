@@ -8,9 +8,9 @@ import java.nio.file.attribute.BasicFileAttributes;
 
 public class IndexFileVisitor extends SimpleFileVisitor<Path> {
 
-    private Index index;
+    private Writer index;
 
-    public IndexFileVisitor(Index i)
+    public IndexFileVisitor(Writer i)
     {
         super();
         index = i;
@@ -18,8 +18,8 @@ public class IndexFileVisitor extends SimpleFileVisitor<Path> {
 
     @Override
     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-        System.out.println("dodaję do indeksu " + file.toString());
-        index.addFile(file);
+//        System.out.println("dodaję do indeksu " + file.toString());
+//        index.addFile(file);
         return FileVisitResult.CONTINUE; // super.visitFile(file, attrs);
     }
 }
