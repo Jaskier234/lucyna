@@ -10,6 +10,8 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.*;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.*;
 
 import java.io.IOException;
@@ -18,23 +20,28 @@ import java.nio.file.Path;
 import java.util.HashMap;
 
 public class Writer {
-    private Directory indexDirectory;
+    private Path indexPath;
+    private FSDirectory indexDirectory;
     private IndexWriter indexWriter;
     private PerFieldAnalyzerWrapper analyzer;
 
-    public Writer(Path indexPath) {
-
+    public Writer(Path path) {
+        indexPath = path;
         try {
-            indexDirectory = new MMapDirectory(indexPath);
+            indexDirectory = new SimpleFSDirectory(indexPath);
 
             HashMap<String, Analyzer> analyzerPerField = new HashMap<>();
             // todo rozważyć inne analizatory
-            analyzerPerField.put("english", new EnglishAnalyzer());// todo dodać pole nazwa
+            analyzerPerField.put("english", new EnglishAnalyzer());
             analyzerPerField.put("polish", new PolishAnalyzer());
             analyzerPerField.put("generic", new StandardAnalyzer());
+            analyzerPerField.put("filename", new StandardAnalyzer());
+            analyzerPerField.put("filedirectory", new StandardAnalyzer());
             analyzerPerField.put("directory", new KeywordAnalyzer());
 
             analyzer = new PerFieldAnalyzerWrapper(new StandardAnalyzer(), analyzerPerField);
+
+            indexWriter = new IndexWriter(indexDirectory, new IndexWriterConfig(analyzer));
         }
         catch (IOException e) {
             System.out.println("Nie udało się otworzyć indeksu(Konstruktor)(Writer)");
@@ -50,13 +57,13 @@ public class Writer {
         }
 
         try {
-            indexWriter = new IndexWriter(indexDirectory, new IndexWriterConfig(analyzer));
+//            indexWriter = new IndexWriter(indexDirectory, new IndexWriterConfig(analyzer));
 
             Document directoryDocument = new Document();
             directoryDocument.add(new TextField("directory", directory.toString(), Field.Store.YES));
             indexWriter.addDocument(directoryDocument);
 
-            indexWriter.close();
+//            indexWriter.close();
         }
         catch (IOException e) {
             System.out.println("Nie udało się dodać katalogu do obserwowanych");
@@ -82,6 +89,15 @@ public class Writer {
         }
     }
 
+    public void deleteDirectory(Path directory) {
+//        Reader reader = new Reader(indexPath);
+//
+//        Term directoryTerm = new Term("directory", directory.toString());
+//        TopDocs directoryTopDocs = reader.search(new TermQuery(directoryTerm), 0);
+//
+    }
+
+
     public void deleteFile(Path file) {
 
     }
@@ -101,6 +117,15 @@ public class Writer {
         }
         catch(IOException e) {
             System.out.println("Nie udało się zamknąć indexWritera");
+        }
+    }
+
+    public void commit() {
+        try {
+            indexWriter.commit();
+        }
+        catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }

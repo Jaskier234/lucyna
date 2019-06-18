@@ -8,7 +8,9 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.MMapDirectory;
+import org.apache.lucene.store.SimpleFSDirectory;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -16,13 +18,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Reader {
-    private Directory indexDirectory;
+    private FSDirectory indexDirectory;
 //    private IndexReader indexReader;
     private IndexSearcher indexSearcher;
 
     public Reader(Path indexPath) {
         try {
-            indexDirectory = new MMapDirectory(indexPath);
+            indexDirectory = new SimpleFSDirectory(indexPath);
             IndexReader indexReader = DirectoryReader.open(indexDirectory);
             indexSearcher = new IndexSearcher(indexReader);
         }
@@ -31,20 +33,25 @@ public class Reader {
         }
     }
 
-    public List<Document> search(Query query, int limit) {
+    public TopDocs search(Query query, int limit) {
 
         List<Document> results = new ArrayList<>();
         try {
-            TopDocs topDocs = indexSearcher.search(query, limit);
-
-            for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
-                results.add(indexSearcher.doc(scoreDoc.doc));
-            }
+            return indexSearcher.search(query, 10);
         }
         catch (IOException e) {
             System.out.println("Błąd wyszukiwania");
+            return null;
         }
+    }
 
-        return results;
+    public Document getDocument(int documentId) {
+        try {
+            return indexSearcher.doc(documentId);
+        }
+        catch (IOException e) {
+            System.out.println("Nie udało się zwrócić dokumentu");
+            return null;
+        }
     }
 }
