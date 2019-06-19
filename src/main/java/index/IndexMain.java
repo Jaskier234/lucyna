@@ -16,6 +16,9 @@ public class IndexMain {
 
         Writer writer = new Writer(indexPath);
 
+        writer.commit();
+        Reader reader = new Reader(indexPath);
+
         if(args.length == 0) {
             System.out.println("skanuję foldery...");
 
@@ -28,15 +31,15 @@ public class IndexMain {
             switch(args[0]) {
                 case "--purge":
                     // usuwa wszystkie dokumenty z indeksu
-//                    writer.deleteAll();
+                    writer.deleteAll();
                     break;
                 case "--add":
                     // dodaje ścieżkę do katalogu
 //                    System.out.println(args.length);
                     if(args.length == 2) {
-//                        Writer writer = new Writer(indexPath);
-                        writer.addDirectory(Paths.get(args[1]));
-//                        writer.close();
+                        Path directory = Paths.get(args[1]);
+                        directory = directory.toAbsolutePath().normalize();
+                        writer.addDirectory(directory);
                     }
                     else {
                         System.out.println("Niepoprawne polecenie(add)");
@@ -45,10 +48,9 @@ public class IndexMain {
                 case "--rm":
                     // usuwa katalog z indeksu
                     if(args.length == 2) {
-                        Term directory = new Term("directory", args[1]);
-                        Term fileDirectory = new Term("filedirectory", args[1]);
-
-//                        writer.deleteDirectory();
+                        Path directory = Paths.get(args[1]);
+                        directory = directory.toAbsolutePath().normalize();
+                        writer.deleteDirectory(directory);
                     }
                     else {
                         System.out.println("Niepoprawne polecenie");
@@ -56,18 +58,27 @@ public class IndexMain {
                     break;
                 case "--reindex":
                     // ponownie indeksuje wszystkie pliki
+
+                    NormsFieldExistsQuery fileQuery = new NormsFieldExistsQuery("filedirectory");
+                    TopDocs fileResults = reader.search(fileQuery, Integer.MAX_VALUE);
+
+                    writer.deleteAll();
+
+                    for(ScoreDoc scoreDoc : fileResults.scoreDocs) {
+                        Document document = reader.getDocument(scoreDoc.doc);
+
+                    }
                     break;
                 case "--list":
                     // wypisuje wszystkie dodane katalogi
                     writer.commit();
-                    Reader reader = new Reader(indexPath);
-                    NormsFieldExistsQuery query = new NormsFieldExistsQuery("directory");
+//                    Reader reader = new Reader(indexPath);
+                    NormsFieldExistsQuery directoryQuery = new NormsFieldExistsQuery("directory");
 
-                    TopDocs results = reader.search(query, 0);
+                    TopDocs directoryResults = reader.search(directoryQuery, Integer.MAX_VALUE);
 
-                    for(ScoreDoc scoreDoc : results.scoreDocs) {
+                    for(ScoreDoc scoreDoc : directoryResults.scoreDocs) {
                         Document document = reader.getDocument(scoreDoc.doc);
-//                        document.get("directory");
                         System.out.println(document.get("directory"));
                     }
 
@@ -76,7 +87,7 @@ public class IndexMain {
                     System.out.println("Niepoprawne polecenie");
             }
         }
-//        writer.close();
-
+        writer.close();
+        reader.close();
     }
 }

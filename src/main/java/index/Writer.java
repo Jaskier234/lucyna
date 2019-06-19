@@ -10,8 +10,7 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.*;
-import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.*;
 import org.apache.lucene.store.*;
 
 import java.io.IOException;
@@ -25,7 +24,7 @@ public class Writer {
     private IndexWriter indexWriter;
     private PerFieldAnalyzerWrapper analyzer;
 
-    public Writer(Path path) {
+    public Writer(Path path) { // todo dodać stałe
         indexPath = path;
         try {
             indexDirectory = new SimpleFSDirectory(indexPath);
@@ -36,7 +35,7 @@ public class Writer {
             analyzerPerField.put("polish", new PolishAnalyzer());
             analyzerPerField.put("generic", new StandardAnalyzer());
             analyzerPerField.put("filename", new StandardAnalyzer());
-            analyzerPerField.put("filedirectory", new StandardAnalyzer());
+            analyzerPerField.put("filedirectory", new KeywordAnalyzer());
             analyzerPerField.put("directory", new KeywordAnalyzer());
 
             analyzer = new PerFieldAnalyzerWrapper(new StandardAnalyzer(), analyzerPerField);
@@ -90,11 +89,19 @@ public class Writer {
     }
 
     public void deleteDirectory(Path directory) {
-//        Reader reader = new Reader(indexPath);
-//
-//        Term directoryTerm = new Term("directory", directory.toString());
-//        TopDocs directoryTopDocs = reader.search(new TermQuery(directoryTerm), 0);
-//
+        Term directoryTerm = new Term("directory", directory.toString());
+        Query query = new TermQuery(directoryTerm);
+
+        Term fileDirectoryTerm = new Term("filedirectory", directory.toString());
+        Query fileQuery = new PrefixQuery(fileDirectoryTerm);
+
+        try {
+            indexWriter.deleteDocuments(query);
+            indexWriter.deleteDocuments(fileQuery);
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 

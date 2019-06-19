@@ -19,13 +19,13 @@ import java.util.List;
 
 public class Reader {
     private FSDirectory indexDirectory;
-//    private IndexReader indexReader;
+    private IndexReader indexReader;
     private IndexSearcher indexSearcher;
 
     public Reader(Path indexPath) {
         try {
             indexDirectory = new SimpleFSDirectory(indexPath);
-            IndexReader indexReader = DirectoryReader.open(indexDirectory);
+            indexReader = DirectoryReader.open(indexDirectory);
             indexSearcher = new IndexSearcher(indexReader);
         }
         catch(IOException e) {
@@ -37,7 +37,7 @@ public class Reader {
 
         List<Document> results = new ArrayList<>();
         try {
-            return indexSearcher.search(query, 10);
+            return indexSearcher.search(query, limit);
         }
         catch (IOException e) {
             System.out.println("Błąd wyszukiwania");
@@ -52,6 +52,16 @@ public class Reader {
         catch (IOException e) {
             System.out.println("Nie udało się zwrócić dokumentu");
             return null;
+        }
+    }
+
+    public void close()
+    {
+        try {
+            indexReader.close();
+        }
+        catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }
