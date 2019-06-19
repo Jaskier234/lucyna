@@ -59,14 +59,15 @@ public class IndexMain {
                 case "--reindex":
                     // ponownie indeksuje wszystkie pliki
 
-                    NormsFieldExistsQuery fileQuery = new NormsFieldExistsQuery("filedirectory");
+                    NormsFieldExistsQuery fileQuery = new NormsFieldExistsQuery("directory");
                     TopDocs fileResults = reader.search(fileQuery, Integer.MAX_VALUE);
 
                     writer.deleteAll();
 
                     for(ScoreDoc scoreDoc : fileResults.scoreDocs) {
                         Document document = reader.getDocument(scoreDoc.doc);
-
+                        Path directoryPath = Paths.get(document.get("directory"));
+                        writer.addDirectory(directoryPath);
                     }
                     break;
                 case "--list":
