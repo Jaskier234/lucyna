@@ -6,6 +6,7 @@ import org.apache.lucene.search.NormsFieldExistsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -22,9 +23,25 @@ public class IndexMain {
         if(args.length == 0) {
             System.out.println("skanuję foldery...");
 
-            while(true) {
-                // skanownaie folderów w poszukiwaniu zmian
+            try {
+                WatchDir watcher = new WatchDir();
+
+                // dodanie katalogów do watchera
+//                writer.commit();
+                NormsFieldExistsQuery directoryQuery = new NormsFieldExistsQuery("directory");
+
+                TopDocs directoryResults = reader.search(directoryQuery, Integer.MAX_VALUE);
+
+                for(ScoreDoc scoreDoc : directoryResults.scoreDocs) {
+                    Document document = reader.getDocument(scoreDoc.doc);
+                    watcher.registerAll(Paths.get(document.get("directory")));
+                }
+
+                watcher.processEvents();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
+
         }
         else {
             // wykonaj polecenie
@@ -72,8 +89,7 @@ public class IndexMain {
                     break;
                 case "--list":
                     // wypisuje wszystkie dodane katalogi
-                    writer.commit();
-//                    Reader reader = new Reader(indexPath);
+//                    writer.commit();
                     NormsFieldExistsQuery directoryQuery = new NormsFieldExistsQuery("directory");
 
                     TopDocs directoryResults = reader.search(directoryQuery, Integer.MAX_VALUE);
