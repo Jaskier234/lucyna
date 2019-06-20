@@ -24,10 +24,9 @@ public class IndexMain {
             System.out.println("skanuję foldery...");
 
             try {
-                WatchDir watcher = new WatchDir();
+                WatchDir watcher = new WatchDir(writer);
 
                 // dodanie katalogów do watchera
-//                writer.commit();
                 NormsFieldExistsQuery directoryQuery = new NormsFieldExistsQuery("directory");
 
                 TopDocs directoryResults = reader.search(directoryQuery, Integer.MAX_VALUE);
@@ -37,6 +36,7 @@ public class IndexMain {
                     watcher.registerAll(Paths.get(document.get("directory")));
                 }
 
+                // uruchomienie obserwowania kolejki zdarzeń
                 watcher.processEvents();
             } catch (IOException e) {
                 e.printStackTrace();

@@ -29,11 +29,15 @@ public class Reader {
             indexSearcher = new IndexSearcher(indexReader);
         }
         catch(IOException e) {
-            System.out.println("Nie udało się otworzyć indeksu(Konstruktor)(Reader)");
+            System.err.println("Nie udało się otworzyć indeksu(Reader)");
+//            e.printStackTrace();
+            System.exit(1);
         }
     }
 
     public TopDocs search(Query query, int limit) {
+
+//        System.out.println(indexReader.numDeletedDocs());
 
         List<Document> results = new ArrayList<>();
         try {

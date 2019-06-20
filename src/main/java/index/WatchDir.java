@@ -1,5 +1,8 @@
 package main.java.index;
 
+import org.apache.lucene.search.NormsFieldExistsQuery;
+import org.apache.lucene.search.TopDocs;
+
 import java.nio.file.*;
 import static java.nio.file.StandardWatchEventKinds.*;
 import static java.nio.file.LinkOption.*;
@@ -7,15 +10,16 @@ import java.nio.file.attribute.*;
 import java.io.*;
 import java.util.*;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+//import org.slf4j.Logger;
+//import org.slf4j.LoggerFactory;
 
 public class WatchDir {
 
-    private static Logger logger = LoggerFactory.getLogger(WatchDir.class);
+//    private static Logger logger = LoggerFactory.getLogger(WatchDir.class);
 
     private final WatchService watcher;
     private final Map<WatchKey, Path> keys;
+    private Writer indexWriter;
 //    private final boolean recursive;
     private boolean trace = false;
 
@@ -32,10 +36,10 @@ public class WatchDir {
         if (trace) {
             Path prev = keys.get(key);
             if (prev == null) {
-                logger.info("register: {}", dir);
+//                logger.info("register: {}", dir);
             } else {
                 if (!dir.equals(prev)) {
-                    logger.info("update: {} -> {}", prev, dir);
+//                    logger.info("update: {} -> {}", prev, dir);
                 }
             }
         }
@@ -60,7 +64,8 @@ public class WatchDir {
     /**
      * Creates a WatchService and registers the given directory
      */
-    WatchDir() throws IOException {
+    WatchDir(Writer writer) throws IOException {
+        this.indexWriter = writer;
         this.watcher = FileSystems.getDefault()
                 .newWatchService();
         this.keys = new HashMap<WatchKey, Path>();
@@ -94,7 +99,7 @@ public class WatchDir {
 
             Path dir = keys.get(key);
             if (dir == null) {
-                logger.warn("WatchKey not recognized!!");
+//                logger.warn("WatchKey not recognized!!");
                 continue;
             }
 
@@ -112,25 +117,35 @@ public class WatchDir {
                 Path child = dir.resolve(name).toAbsolutePath();
 
                 // print out event
-                logger.info("{}: {}", event.kind().name(), child);
+//                logger.info("{}: {}", event.kind().name(), child);
 
                 // if directory is created, and watching recursively, then
                 // register it and its sub-directories
                 if (kind == ENTRY_CREATE) {
                     System.out.println("Utworzono " + child);
+
+                    indexWriter.addDirectoryFiles(child);
+                    indexWriter.commit();
+
                     try {
                         if (Files.isDirectory(child, NOFOLLOW_LINKS)) {
                             registerAll(child);
                         }
                     } catch (IOException x) {
-                        System.out.println("Nie udało się dodać nowo utworzonego katalogu do watchera");
+                        System.err.println("Nie udało się dodać nowo utworzonego katalogu do watchera");
                     }
                 }
                 if(kind == ENTRY_DELETE) {
                     System.out.println("Usunięto " + child);
+
+                    indexWriter.deleteDirectory(child);
+                    indexWriter.commit();
                 }
                 if(kind == ENTRY_MODIFY) {
                     System.out.println("Zmodyfikowano " + child);
+                    indexWriter.deleteDirectory(child);
+                    indexWriter.addDirectoryFiles(child);
+                    indexWriter.commit();
                 }
             }
 
