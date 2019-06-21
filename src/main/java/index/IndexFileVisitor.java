@@ -27,7 +27,7 @@ public class IndexFileVisitor extends SimpleFileVisitor<Path> {
         String fileContent;
         try {
             fileContent = fileParser.parseFile(file);
-            index.addFile(file, fileContent);
+            index.addFile(file, fileContent, fileParser.getLanguage(fileContent));
         }
         catch (TikaException e) {
             System.out.println("Nie udało się odczytać treści pliku");

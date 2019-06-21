@@ -1,7 +1,6 @@
 package main.java.index;
 
 import org.apache.lucene.document.Document;
-import org.apache.lucene.index.Term;
 import org.apache.lucene.search.NormsFieldExistsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
@@ -27,13 +26,13 @@ public class IndexMain {
                 WatchDir watcher = new WatchDir(writer);
 
                 // dodanie katalogów do watchera
-                NormsFieldExistsQuery directoryQuery = new NormsFieldExistsQuery("directory");
+                NormsFieldExistsQuery directoryQuery = new NormsFieldExistsQuery(Writer.DIR);
 
                 TopDocs directoryResults = reader.search(directoryQuery, Integer.MAX_VALUE);
 
                 for(ScoreDoc scoreDoc : directoryResults.scoreDocs) {
                     Document document = reader.getDocument(scoreDoc.doc);
-                    watcher.registerAll(Paths.get(document.get("directory")));
+                    watcher.registerAll(Paths.get(document.get(Writer.DIR)));
                 }
 
                 // uruchomienie obserwowania kolejki zdarzeń
@@ -76,27 +75,27 @@ public class IndexMain {
                 case "--reindex":
                     // ponownie indeksuje wszystkie pliki
 
-                    NormsFieldExistsQuery fileQuery = new NormsFieldExistsQuery("directory");
+                    NormsFieldExistsQuery fileQuery = new NormsFieldExistsQuery(Writer.DIR);
                     TopDocs fileResults = reader.search(fileQuery, Integer.MAX_VALUE);
 
                     writer.deleteAll();
 
                     for(ScoreDoc scoreDoc : fileResults.scoreDocs) {
                         Document document = reader.getDocument(scoreDoc.doc);
-                        Path directoryPath = Paths.get(document.get("directory"));
+                        Path directoryPath = Paths.get(document.get(Writer.DIR));
                         writer.addDirectory(directoryPath);
                     }
                     break;
                 case "--list":
                     // wypisuje wszystkie dodane katalogi
 //                    writer.commit();
-                    NormsFieldExistsQuery directoryQuery = new NormsFieldExistsQuery("directory");
+                    NormsFieldExistsQuery directoryQuery = new NormsFieldExistsQuery(Writer.DIR);
 
                     TopDocs directoryResults = reader.search(directoryQuery, Integer.MAX_VALUE);
 
                     for(ScoreDoc scoreDoc : directoryResults.scoreDocs) {
                         Document document = reader.getDocument(scoreDoc.doc);
-                        System.out.println(document.get("directory"));
+                        System.out.println(document.get(Writer.DIR));
                     }
 
                     break;

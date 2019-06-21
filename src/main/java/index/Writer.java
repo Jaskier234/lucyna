@@ -99,7 +99,7 @@ public class Writer {
     }
     /////////////
 
-    public void addFile(Path file, String fileContent) {
+    public void addFile(Path file, String fileContent, String langField) {
         System.out.println(">>>>>>>>>>>> addFile <<<<<<<<<<<<");
         try {
             Document document = new Document();
@@ -107,7 +107,13 @@ public class Writer {
             document.add(new TextField(FILE_DIR, file.toAbsolutePath().normalize().toString(), Field.Store.YES));
             document.add(new TextField(FILE_NAME, file.getFileName().toString(), Field.Store.YES));
             System.out.println(file.toAbsolutePath().normalize().toString());
-            document.add(new TextField("polish", fileContent, Field.Store.YES));
+
+            if(langField.equals("pl"))
+                document.add(new TextField(POL, fileContent, Field.Store.YES));
+            if(langField.equals("en"))
+                document.add(new TextField(ENG, fileContent, Field.Store.YES));
+            else
+                document.add(new TextField(GEN, fileContent, Field.Store.YES));
 
             ///////////////
             List<String> tokens = analyze(fileContent, new PolishAnalyzer());
