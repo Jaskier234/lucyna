@@ -12,6 +12,7 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;
 import org.apache.lucene.search.highlight.*;
+import org.apache.lucene.util.QueryBuilder;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 
@@ -57,7 +58,7 @@ public class Searcher {
 
         String[] args = line.split(" ");
 
-        if(args.length > 2 || args.length <= 0 || line.equals("")) {
+        if(args.length <= 0 || line.equals("")) {
             correctCommand = false;
             return;
         }
@@ -172,9 +173,9 @@ public class Searcher {
             return;
         }
 
+        QueryBuilder builder;
         switch(config.queryType) {
             case TERM:
-
                 if(analyzedLanguageString.size() > 1) {
                     System.err.println("Podana fraza składa się z więcej niż jednego termu. Lepiej użyć %phrase");
                 }
@@ -190,9 +191,23 @@ public class Searcher {
                         .build();
                 break;
             case PHRASE:
+                if(config.language == SearcherConfig.Language.PL) {
+                    builder = new QueryBuilder(new PolishAnalyzer());
+                }
+                else {
+                    builder = new QueryBuilder(new EnglishAnalyzer());
+                }
 
+                query = new BooleanQuery.Builder()
+                        .add(builder.createPhraseQuery(field, queryString), BooleanClause.Occur.SHOULD)
+                        .add(builder.createPhraseQuery(Writer.GEN, queryString), BooleanClause.Occur.SHOULD)
+                        .build();
                 break;
             case FUZZY:
+                query = new BooleanQuery.Builder()
+                        .add(new FuzzyQuery(new Term(field, queryString)), BooleanClause.Occur.SHOULD)
+                        .add(new FuzzyQuery(new Term(Writer.GEN, queryString)), BooleanClause.Occur.SHOULD)
+                        .build();
                 break;
         }
 
@@ -235,7 +250,7 @@ public class Searcher {
 
             String text;
             TokenStream stream;
-            if(document.get(Writer.GEN) != null) { // znaleziono w generycznym
+            if(document.get(Writer.GEN) != null) {
                 text = document.get(Writer.GEN);
 
                 Analyzer genericAnalyzer = new StandardAnalyzer();
@@ -259,12 +274,15 @@ public class Searcher {
             }
 
             String[] context = new String[0];
+
             try {
                 context = highlighter.getBestFragments(stream, text, 10);
-//                stream.close();
+            }
+            catch (IllegalArgumentException e) {
+                System.err.println("Zapytanie do FuzzyQuery musi mieć conajmniej 4 znaki");
             }
             catch (Exception e) {
-                e.printStackTrace();
+                System.err.println("Problem z wypisaniem kontekstu");
             }
 
             if(config.details) {

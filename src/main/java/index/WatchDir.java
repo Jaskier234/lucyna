@@ -1,8 +1,5 @@
 package main.java.index;
 
-import org.apache.lucene.search.NormsFieldExistsQuery;
-import org.apache.lucene.search.TopDocs;
-
 import java.nio.file.*;
 import static java.nio.file.StandardWatchEventKinds.*;
 import static java.nio.file.LinkOption.*;
@@ -10,17 +7,11 @@ import java.nio.file.attribute.*;
 import java.io.*;
 import java.util.*;
 
-//import org.slf4j.Logger;
-//import org.slf4j.LoggerFactory;
-
 public class WatchDir {
-
-//    private static Logger logger = LoggerFactory.getLogger(WatchDir.class);
 
     private final WatchService watcher;
     private final Map<WatchKey, Path> keys;
     private Writer indexWriter;
-//    private final boolean recursive;
     private boolean trace = false;
 
     @SuppressWarnings("unchecked")
@@ -36,10 +27,8 @@ public class WatchDir {
         if (trace) {
             Path prev = keys.get(key);
             if (prev == null) {
-//                logger.info("register: {}", dir);
             } else {
                 if (!dir.equals(prev)) {
-//                    logger.info("update: {} -> {}", prev, dir);
                 }
             }
         }
@@ -69,17 +58,6 @@ public class WatchDir {
         this.watcher = FileSystems.getDefault()
                 .newWatchService();
         this.keys = new HashMap<WatchKey, Path>();
-//        this.recursive = recursive;
-
-//        if (recursive) {
-//            logger.info("Scanning {} ...", dir);
-//            registerAll(dir);
-//            logger.info("Done.");
-//        } else {
-//            register(dir);
-//        }
-
-        // enable trace after initial registration
         this.trace = true;
     }
 
@@ -99,7 +77,6 @@ public class WatchDir {
 
             Path dir = keys.get(key);
             if (dir == null) {
-//                logger.warn("WatchKey not recognized!!");
                 continue;
             }
 
@@ -116,11 +93,6 @@ public class WatchDir {
                 Path name = ev.context();
                 Path child = dir.resolve(name).toAbsolutePath();
 
-                // print out event
-//                logger.info("{}: {}", event.kind().name(), child);
-
-                // if directory is created, and watching recursively, then
-                // register it and its sub-directories
                 if (kind == ENTRY_CREATE) {
                     System.out.println("Utworzono " + child);
 
@@ -166,30 +138,4 @@ public class WatchDir {
         System.err.println("usage: java WatchDir [-r] dir");
         System.exit(-1);
     }
-
-//    public static void main(String[] args) throws IOException {
-//        // parse arguments
-//        if (args.length == 0 || args.length > 2)
-//            usage();
-//        boolean recursive = false;
-//        int dirArg = 0;
-//        if (args[0].equals("-r")) {
-//            if (args.length < 2)
-//                usage();
-//            recursive = true;
-//            dirArg++;
-//        }
-//
-//        Runtime.getRuntime()
-//                .addShutdownHook(new Thread() {
-//                    @Override
-//                    public void run() {
-//                        logger.info("Exiting...");
-//                    }
-//                });
-//
-//        // register directory and process its events
-//        Path dir = Paths.get(args[dirArg]);
-//        new WatchDir(dir, recursive).processEvents();
-//    }
 }

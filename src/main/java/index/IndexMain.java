@@ -51,7 +51,6 @@ public class IndexMain {
                     break;
                 case "--add":
                     // dodaje ścieżkę do katalogu
-//                    System.out.println(args.length);
                     if(args.length == 2) {
                         Path directory = Paths.get(args[1]);
                         directory = directory.toAbsolutePath().normalize();
@@ -88,7 +87,6 @@ public class IndexMain {
                     break;
                 case "--list":
                     // wypisuje wszystkie dodane katalogi
-//                    writer.commit();
                     NormsFieldExistsQuery directoryQuery = new NormsFieldExistsQuery(Writer.DIR);
 
                     TopDocs directoryResults = reader.search(directoryQuery, Integer.MAX_VALUE);

@@ -5,11 +5,8 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.store.MMapDirectory;
 import org.apache.lucene.store.SimpleFSDirectory;
 
 import java.io.IOException;
@@ -30,14 +27,11 @@ public class Reader {
         }
         catch(IOException e) {
             System.err.println("Nie udało się otworzyć indeksu(Reader)");
-//            e.printStackTrace();
             System.exit(1);
         }
     }
 
     public TopDocs search(Query query, int limit) {
-
-//        System.out.println(indexReader.numDeletedDocs());
 
         List<Document> results = new ArrayList<>();
         try {

@@ -1,13 +1,11 @@
 package main.java.index;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper;
 import org.apache.lucene.analysis.pl.PolishAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
-import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.TextField;
@@ -18,9 +16,7 @@ import org.apache.lucene.store.*;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 
 public class Writer {
     public static String ENG = "english";
@@ -54,7 +50,6 @@ public class Writer {
         }
         catch (IOException e) {
             System.err.println("Nie udało się otworzyć indeksu(Writer)");
-//            e.printStackTrace();
             System.exit(1);
         }
     }
@@ -86,27 +81,12 @@ public class Writer {
         }
     }
 
-    ////////////
-    public List<String> analyze(String text, Analyzer analyzer) throws IOException{
-        List<String> result = new ArrayList<String>();
-        TokenStream tokenStream = analyzer.tokenStream("polish", text);
-        CharTermAttribute attr = tokenStream.addAttribute(CharTermAttribute.class);
-        tokenStream.reset();
-        while(tokenStream.incrementToken()) {
-            result.add(attr.toString());
-        }
-        return result;
-    }
-    /////////////
-
     public void addFile(Path file, String fileContent, String langField) {
-        System.out.println(">>>>>>>>>>>> addFile <<<<<<<<<<<<");
         try {
             Document document = new Document();
 
             document.add(new TextField(FILE_DIR, file.toAbsolutePath().normalize().toString(), Field.Store.YES));
             document.add(new TextField(FILE_NAME, file.getFileName().toString(), Field.Store.YES));
-            System.out.println(file.toAbsolutePath().normalize().toString());
 
             if(langField.equals("pl"))
                 document.add(new TextField(POL, fileContent, Field.Store.YES));
@@ -115,24 +95,14 @@ public class Writer {
             else
                 document.add(new TextField(GEN, fileContent, Field.Store.YES));
 
-            ///////////////
-            List<String> tokens = analyze(fileContent, new PolishAnalyzer());
-            System.out.print(file.toString() + ": ");
-            for(String s : tokens) {
-                System.out.print(s + ", ");
-            }
-            System.out.println();
-            /////////////////
-
             try {
                 indexWriter.addDocument(document);
             }
             catch(IOException e) {
-                System.out.println("Nie udało się dodać pliku do indeksu");
+                System.err.println("Nie udało się dodać pliku do indeksu");
             }
         }
         catch(Exception e) {
-//            System.out.println("Nie udało się odczytać pliku");
             e.printStackTrace();
         }
     }
@@ -149,16 +119,10 @@ public class Writer {
         try {
             indexWriter.deleteDocuments(query);
             indexWriter.deleteDocuments(fileQuery);
-//            indexWriter.forceMergeDeletes();
         }
         catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-
-    public void deleteFile(Path file) {
-
     }
 
     public void deleteAll() {

@@ -2,7 +2,7 @@ package main.java.searcher;
 
 public class SearcherConfig {
     public enum Language {
-        PL, ENG;
+        PL, ENG
     }
     public Language language;
 
@@ -11,7 +11,7 @@ public class SearcherConfig {
     public int limit;
 
     public enum QueryType {
-        TERM, PHRASE, FUZZY;
+        TERM, PHRASE, FUZZY
     }
     public QueryType queryType;
 
@@ -23,6 +23,4 @@ public class SearcherConfig {
         limit = Integer.MAX_VALUE;
         queryType = QueryType.TERM;
     }
-
-
 }
