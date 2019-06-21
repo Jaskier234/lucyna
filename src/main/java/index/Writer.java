@@ -110,7 +110,7 @@ public class Writer {
 
             if(langField.equals("pl"))
                 document.add(new TextField(POL, fileContent, Field.Store.YES));
-            if(langField.equals("en"))
+            else if(langField.equals("en"))
                 document.add(new TextField(ENG, fileContent, Field.Store.YES));
             else
                 document.add(new TextField(GEN, fileContent, Field.Store.YES));
