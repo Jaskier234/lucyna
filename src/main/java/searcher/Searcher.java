@@ -4,12 +4,16 @@ import main.java.index.Reader;
 import main.java.index.Writer;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.apache.lucene.analysis.pl.PolishAnalyzer;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;
 import org.apache.lucene.search.highlight.*;
+import org.jline.utils.AttributedStringBuilder;
+import org.jline.utils.AttributedStyle;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -22,15 +26,24 @@ public class Searcher {
     private SearcherConfig config;
     private boolean correctCommand;
     private String queryString;
-//    private Reader reader;
+    Formatter formatter;
 
     public Searcher() {
         config = new SearcherConfig();
 
+        formatter = new Formatter() {
+            @Override
+            public String highlightTerm(String s, TokenGroup tokenGroup) {
+                if(tokenGroup.getTotalScore() == 0) {
+                    return s;
+                }
 
-
-//        reader = new Reader(indexPath);
-
+                return new AttributedStringBuilder().append("")
+                        .style(AttributedStyle.DEFAULT.bold())
+                        .append(s)
+                        .toAnsi();
+            }
+        };
     }
 
     public void parseInput()
@@ -44,8 +57,9 @@ public class Searcher {
 
         String[] args = line.split(" ");
 
-        if(args.length > 2) {
+        if(args.length > 2 || args.length <= 0) {
             correctCommand = false;
+            return;
         }
 
         switch(args[0]) {
@@ -130,13 +144,28 @@ public class Searcher {
 
         Path indexPath = Paths.get(System.getProperty("user.home"));
         indexPath = indexPath.resolve(".index");
-
         Reader reader = new Reader(indexPath);
-        Query query = null;
-        List<String> analyzedString;
-        try {
-            analyzedString = analyze(queryString, new PolishAnalyzer());
 
+        Query query = null;
+        List<String> analyzedLanguageString;
+        List<String> analyzedStandardString;
+
+        String field;
+        if(config.language == SearcherConfig.Language.PL) {
+            field = Writer.POL;
+        }
+        else {
+            field = Writer.ENG;
+        }
+
+        try {
+            if(config.language == SearcherConfig.Language.PL) {
+                analyzedLanguageString = analyze(queryString, Writer.POL, new PolishAnalyzer());
+            }
+            else {
+                analyzedLanguageString = analyze(queryString, Writer.ENG, new EnglishAnalyzer());
+            }
+            analyzedStandardString = analyze(queryString, Writer.FILE_NAME, new StandardAnalyzer());
         }
         catch (IOException e) {
             e.printStackTrace();
@@ -145,19 +174,20 @@ public class Searcher {
 
         switch(config.queryType) {
             case TERM:
-                if(config.language == SearcherConfig.Language.PL) { // todo dodać wyszukiwanie w generycznym
-                    Term term = new Term(Writer.POL, analyzedString.get(0));
-                    if(analyzedString.size() > 1){}
-                        // lepiej użyć phrase query
-                    query = new TermQuery(term);
 
+                if(analyzedLanguageString.size() > 1) {
+                    System.err.println("Podana fraza składa się z więcej niż jednego termu. Lepiej użyć %phrase");
                 }
-                else if(config.language == SearcherConfig.Language.ENG) {
-                    Term term = new Term(Writer.ENG, analyzedString.get(0));
-                    if(analyzedString.size() > 1){}
-                          // lepiej użyć phrase query
-                    query = new TermQuery(term);
-                }
+
+                Term languageTerm = new Term(field, analyzedLanguageString.get(0));
+                Term genericTerm = new Term(field, analyzedLanguageString.get(0));
+                Term filenameTerm = new Term(Writer.FILE_NAME, analyzedStandardString.get(0));
+
+                query = new BooleanQuery.Builder()
+                        .add(new TermQuery(languageTerm), BooleanClause.Occur.SHOULD)
+                        .add(new TermQuery(genericTerm), BooleanClause.Occur.SHOULD)
+                        .add(new TermQuery(filenameTerm), BooleanClause.Occur.SHOULD)
+                        .build();
                 break;
             case PHRASE:
 
@@ -166,45 +196,85 @@ public class Searcher {
                 break;
         }
 
-        TopDocs results = reader.search(query, config.limit);
-        System.out.println(results.scoreDocs.length);
 
-        Formatter formatter = new SimpleHTMLFormatter();
+        Formatter formatter = new Formatter() {
+            @Override
+            public String highlightTerm(String s, TokenGroup tokenGroup) {
+                if(tokenGroup.getTotalScore() == 0) {
+                    return s;
+                }
+
+                if(config.color)
+                    return new AttributedStringBuilder()
+                            .style(AttributedStyle.BOLD.foreground(AttributedStyle.GREEN))
+                            .append(s)
+                            .toAnsi();
+                else
+                    return new AttributedStringBuilder()
+                            .style(AttributedStyle.DEFAULT.bold())
+                            .append(s)
+                            .toAnsi();
+            }
+        };
+
         QueryScorer scorer = new QueryScorer(query);
         Highlighter highlighter = new Highlighter(formatter, scorer);
 
         highlighter.setTextFragmenter(new SimpleFragmenter());
 
+        TopDocs results = reader.search(query, config.limit);
+        System.out.println("File count:" + results.scoreDocs.length);
+
         for(ScoreDoc scoreDoc : results.scoreDocs) {
             Document document = reader.getDocument(scoreDoc.doc);
-            // todo wyjątek poniżej
-            String text = document.get(Writer.POL);
-            Analyzer analyzer = new PolishAnalyzer();
-            TokenStream stream = analyzer.tokenStream(Writer.POL, text);
+            String text; // = document.get(Writer.POL);
 
-            System.out.println(document.get(Writer.FILE_DIR));
+            TokenStream stream;
+            if(document.get(field) == null) { // znaleziono w generycznym
+                text = document.get(Writer.GEN);
 
-            String[] frags = new String[0];
+                Analyzer genericAnalyzer = new StandardAnalyzer();
+                stream = genericAnalyzer.tokenStream(Writer.GEN, text);
+            }
+            else
+            {
+                text = document.get(field);
+
+                Analyzer languageAnalyzer;
+                if(config.language == SearcherConfig.Language.PL)
+                    languageAnalyzer = new PolishAnalyzer();
+                else
+                    languageAnalyzer = new EnglishAnalyzer();
+
+                stream = languageAnalyzer.tokenStream(field, text);
+            }
+
+            System.out.println(new AttributedStringBuilder()
+                    .style(AttributedStyle.DEFAULT.bold())
+                    .append(document.get(Writer.FILE_DIR))
+                    .toAnsi());
+
+            String[] context = new String[0];
             try {
-                frags = highlighter.getBestFragments(stream, document.get(Writer.POL), 10);
+                context = highlighter.getBestFragments(stream, text, 10);
+//                stream.close();
             }
-            catch (IOException e) {
-                e.printStackTrace();
-            }
-            catch (InvalidTokenOffsetsException e) {
+            catch (Exception e) {
                 e.printStackTrace();
             }
 
-            for (String s: frags) {
-                System.out.println(s);
+            if(config.details) {
+                for (String s: context) {
+                    System.out.println(s);
+                }
             }
         }
         reader.close();
     }
 
-    public static List<String> analyze(String text, Analyzer analyzer) throws IOException {
+    public static List<String> analyze(String text, String field, Analyzer analyzer) throws IOException {
         List<String> result = new ArrayList<String>();
-        TokenStream tokenStream = analyzer.tokenStream("polish", text);
+        TokenStream tokenStream = analyzer.tokenStream(field, text);
         CharTermAttribute attr = tokenStream.addAttribute(CharTermAttribute.class);
         tokenStream.reset();
         while(tokenStream.incrementToken()) {
