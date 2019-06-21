@@ -57,7 +57,7 @@ public class Searcher {
 
         String[] args = line.split(" ");
 
-        if(args.length > 2 || args.length <= 0) {
+        if(args.length > 2 || args.length <= 0 || line.equals("")) {
             correctCommand = false;
             return;
         }
@@ -160,12 +160,12 @@ public class Searcher {
 
         try {
             if(config.language == SearcherConfig.Language.PL) {
-                analyzedLanguageString = analyze(queryString, Writer.POL, new PolishAnalyzer());
+                analyzedLanguageString = analyze(queryString, new PolishAnalyzer());
             }
             else {
-                analyzedLanguageString = analyze(queryString, Writer.ENG, new EnglishAnalyzer());
+                analyzedLanguageString = analyze(queryString, new EnglishAnalyzer());
             }
-            analyzedStandardString = analyze(queryString, Writer.FILE_NAME, new StandardAnalyzer());
+            analyzedStandardString = analyze(queryString, new StandardAnalyzer());
         }
         catch (IOException e) {
             e.printStackTrace();
@@ -180,7 +180,7 @@ public class Searcher {
                 }
 
                 Term languageTerm = new Term(field, analyzedLanguageString.get(0));
-                Term genericTerm = new Term(field, analyzedLanguageString.get(0));
+                Term genericTerm = new Term(Writer.GEN, analyzedStandardString.get(0));
                 Term filenameTerm = new Term(Writer.FILE_NAME, analyzedStandardString.get(0));
 
                 query = new BooleanQuery.Builder()
@@ -227,32 +227,36 @@ public class Searcher {
 
         for(ScoreDoc scoreDoc : results.scoreDocs) {
             Document document = reader.getDocument(scoreDoc.doc);
-            String text; // = document.get(Writer.POL);
-
-            TokenStream stream;
-            if(document.get(field) == null) { // znaleziono w generycznym
-                text = document.get(Writer.GEN);
-
-                Analyzer genericAnalyzer = new StandardAnalyzer();
-                stream = genericAnalyzer.tokenStream(Writer.GEN, text);
-            }
-            else
-            {
-                text = document.get(field);
-
-                Analyzer languageAnalyzer;
-                if(config.language == SearcherConfig.Language.PL)
-                    languageAnalyzer = new PolishAnalyzer();
-                else
-                    languageAnalyzer = new EnglishAnalyzer();
-
-                stream = languageAnalyzer.tokenStream(field, text);
-            }
 
             System.out.println(new AttributedStringBuilder()
                     .style(AttributedStyle.DEFAULT.bold())
                     .append(document.get(Writer.FILE_DIR))
                     .toAnsi());
+
+            String text;
+            TokenStream stream;
+            if(document.get(Writer.GEN) != null) { // znaleziono w generycznym
+                text = document.get(Writer.GEN);
+
+                Analyzer genericAnalyzer = new StandardAnalyzer();
+                stream = genericAnalyzer.tokenStream(Writer.GEN, text);
+            }
+            else if(document.get(field) != null) {
+                text = document.get(field);
+
+                Analyzer languageAnalyzer;
+                if(config.language == SearcherConfig.Language.PL) {
+                    languageAnalyzer = new PolishAnalyzer();
+                }
+                else {
+                    languageAnalyzer = new EnglishAnalyzer();
+                }
+
+                stream = languageAnalyzer.tokenStream(field, text);
+            }
+            else {
+                continue;
+            }
 
             String[] context = new String[0];
             try {
@@ -272,9 +276,9 @@ public class Searcher {
         reader.close();
     }
 
-    public static List<String> analyze(String text, String field, Analyzer analyzer) throws IOException {
+    public static List<String> analyze(String text, Analyzer analyzer) throws IOException {
         List<String> result = new ArrayList<String>();
-        TokenStream tokenStream = analyzer.tokenStream(field, text);
+        TokenStream tokenStream = analyzer.tokenStream("field", text);
         CharTermAttribute attr = tokenStream.addAttribute(CharTermAttribute.class);
         tokenStream.reset();
         while(tokenStream.incrementToken()) {
