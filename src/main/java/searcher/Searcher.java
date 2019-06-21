@@ -8,10 +8,8 @@ import org.apache.lucene.analysis.pl.PolishAnalyzer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.*;
+import org.apache.lucene.search.highlight.*;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -24,15 +22,14 @@ public class Searcher {
     private SearcherConfig config;
     private boolean correctCommand;
     private String queryString;
-    private Reader reader;
+//    private Reader reader;
 
     public Searcher() {
         config = new SearcherConfig();
 
-        Path indexPath = Paths.get(System.getProperty("user.home"));
-        indexPath = indexPath.resolve(".index");
 
-        reader = new Reader(indexPath);
+
+//        reader = new Reader(indexPath);
 
     }
 
@@ -131,6 +128,10 @@ public class Searcher {
         if(queryString == null)
             return;
 
+        Path indexPath = Paths.get(System.getProperty("user.home"));
+        indexPath = indexPath.resolve(".index");
+
+        Reader reader = new Reader(indexPath);
         Query query = null;
         List<String> analyzedString;
         try {
@@ -149,6 +150,7 @@ public class Searcher {
                     if(analyzedString.size() > 1){}
                         // lepiej użyć phrase query
                     query = new TermQuery(term);
+
                 }
                 else if(config.language == SearcherConfig.Language.ENG) {
                     Term term = new Term(Writer.ENG, analyzedString.get(0));
@@ -166,10 +168,38 @@ public class Searcher {
 
         TopDocs results = reader.search(query, config.limit);
         System.out.println(results.scoreDocs.length);
+
+        Formatter formatter = new SimpleHTMLFormatter();
+        QueryScorer scorer = new QueryScorer(query);
+        Highlighter highlighter = new Highlighter(formatter, scorer);
+
+        highlighter.setTextFragmenter(new SimpleFragmenter());
+
         for(ScoreDoc scoreDoc : results.scoreDocs) {
             Document document = reader.getDocument(scoreDoc.doc);
+            // todo wyjątek poniżej
+            String text = document.get(Writer.POL);
+            Analyzer analyzer = new PolishAnalyzer();
+            TokenStream stream = analyzer.tokenStream(Writer.POL, text);
+
             System.out.println(document.get(Writer.FILE_DIR));
+
+            String[] frags = new String[0];
+            try {
+                frags = highlighter.getBestFragments(stream, document.get(Writer.POL), 10);
+            }
+            catch (IOException e) {
+                e.printStackTrace();
+            }
+            catch (InvalidTokenOffsetsException e) {
+                e.printStackTrace();
+            }
+
+            for (String s: frags) {
+                System.out.println(s);
+            }
         }
+        reader.close();
     }
 
     public static List<String> analyze(String text, Analyzer analyzer) throws IOException {

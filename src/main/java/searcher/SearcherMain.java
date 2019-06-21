@@ -10,6 +10,7 @@ import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;
+import org.apache.lucene.search.highlight.InvalidTokenOffsetsException;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -21,7 +22,7 @@ public class SearcherMain {
 
 
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException{
         Searcher searcher = new Searcher();
 
         while(true){
