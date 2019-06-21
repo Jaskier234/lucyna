@@ -1,9 +1,17 @@
 package main.java.searcher;
 
 import main.java.index.Reader;
+import main.java.index.Writer;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.pl.PolishAnalyzer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.TopDocs;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -48,7 +56,7 @@ public class Searcher {
                 if(args[1].equals("pl")) {
                     config.language = SearcherConfig.Language.PL;
                 }
-                if(args[1].equals("en")) {
+                else if(args[1].equals("en")) {
                     config.language = SearcherConfig.Language.ENG;
                 }
                 else {
@@ -59,7 +67,7 @@ public class Searcher {
                 if(args[1].equals("on")) {
                     config.details = true;
                 }
-                if(args[1].equals("off")) {
+                else if(args[1].equals("off")) {
                     config.details = false;
                 }
                 else {
@@ -70,7 +78,7 @@ public class Searcher {
                 if(args[1].equals("on")) {
                     config.color = true;
                 }
-                if(args[1].equals("off")) {
+                else if(args[1].equals("off")) {
                     config.color = false;
                 }
                 else {
@@ -123,13 +131,44 @@ public class Searcher {
         if(queryString == null)
             return;
 
+        Query query = null;
+        List<String> analyzedString;
+        try {
+            analyzedString = analyze(queryString, new PolishAnalyzer());
+
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+            return;
+        }
+
         switch(config.queryType) {
             case TERM:
+                if(config.language == SearcherConfig.Language.PL) { // todo dodać wyszukiwanie w generycznym
+                    Term term = new Term(Writer.POL, analyzedString.get(0));
+                    if(analyzedString.size() > 1){}
+                        // lepiej użyć phrase query
+                    query = new TermQuery(term);
+                }
+                else if(config.language == SearcherConfig.Language.ENG) {
+                    Term term = new Term(Writer.ENG, analyzedString.get(0));
+                    if(analyzedString.size() > 1){}
+                          // lepiej użyć phrase query
+                    query = new TermQuery(term);
+                }
                 break;
             case PHRASE:
+
                 break;
             case FUZZY:
                 break;
+        }
+
+        TopDocs results = reader.search(query, config.limit);
+        System.out.println(results.scoreDocs.length);
+        for(ScoreDoc scoreDoc : results.scoreDocs) {
+            Document document = reader.getDocument(scoreDoc.doc);
+            System.out.println(document.get(Writer.FILE_DIR));
         }
     }
 

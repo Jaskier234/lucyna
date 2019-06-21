@@ -22,29 +22,37 @@ public class SearcherMain {
 
 
     public static void main(String[] args) throws IOException {
-        Path indexPath = Paths.get(System.getProperty("user.home"));
-        indexPath = indexPath.resolve(".index");
+        Searcher searcher = new Searcher();
 
-        Reader reader = new Reader(indexPath);
-
-        String text = "polska";
-
-        List<String> analyzed = analyze(text, new PolishAnalyzer());
-
-        System.out.println(analyzed.get(0));
-
-        Term term = new Term("polish", analyzed.get(0));
-        Query query = new TermQuery(term);
-
-//        Term fileDirectoryTerm = new Term(Writer.FILE_DIR, "/home/artur/Dokumenty/Lucyna/asdf/globus/globus.dfg");
-//        Query query = new PrefixQuery(fileDirectoryTerm);
-
-        TopDocs results = reader.search(query, Integer.MAX_VALUE);
-        System.out.println(results.scoreDocs.length);
-        for(ScoreDoc scoreDoc : results.scoreDocs) {
-            Document document = reader.getDocument(scoreDoc.doc);
-            System.out.println(document.get("filename"));
+        while(true){
+            searcher.parseInput();
+            searcher.evaluate();
         }
+
+
+//        Path indexPath = Paths.get(System.getProperty("user.home"));
+//        indexPath = indexPath.resolve(".index");
+//
+//        Reader reader = new Reader(indexPath);
+//
+//        String text = "polska";
+//
+//        List<String> analyzed = analyze(text, new PolishAnalyzer());
+//
+//        System.out.println(analyzed.get(0));
+//
+//        Term term = new Term("polish", analyzed.get(0));
+//        Query query = new TermQuery(term);
+//
+////        Term fileDirectoryTerm = new Term(Writer.FILE_DIR, "/home/artur/Dokumenty/Lucyna/asdf/globus/globus.dfg");
+////        Query query = new PrefixQuery(fileDirectoryTerm);
+//
+//        TopDocs results = reader.search(query, Integer.MAX_VALUE);
+//        System.out.println(results.scoreDocs.length);
+//        for(ScoreDoc scoreDoc : results.scoreDocs) {
+//            Document document = reader.getDocument(scoreDoc.doc);
+//            System.out.println(document.get("filename"));
+//        }
 
     }
 }
